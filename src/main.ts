@@ -461,7 +461,9 @@ function setupAutoUpdater(): void {
         type: UpdateSourceType.ElectronPublicUpdateService,
         repo: "switcheex-glitch/metacore",
       },
-      updateInterval: "1 hour",
+      // 5 minutes — minimum allowed by update-electron-app. Initial check runs
+      // automatically at startup; this controls re-check cadence.
+      updateInterval: "5 minutes",
       notifyUser: false,
       logger: console,
     });

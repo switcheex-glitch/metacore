@@ -15,8 +15,10 @@ import {
   Settings as SettingsIcon,
   Boxes,
   Sparkles,
+  RefreshCw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { invoke } from "@/ipc/ipc_client";
 import { useSettings, useUpdateSettings } from "@/hooks/use-providers";
 import { useConfirm } from "@/components/confirm-dialog";
 import { useT } from "@/hooks/use-t";
@@ -81,8 +83,9 @@ export function SettingsPage() {
         <SettingsGroup
           icon={<Sparkles className="h-4 w-4" />}
           title="Приложение"
-          hint="Канал обновлений и анонимная телеметрия."
+          hint="Канал обновлений, анонимная телеметрия и ручная проверка обновлений."
         >
+          <UpdateCheckRow />
           <ReleaseChannelToggle />
           <TelemetryToggle />
         </SettingsGroup>
@@ -190,6 +193,62 @@ function DefaultChatModeToggle() {
         ))}
       </div>
     </ToggleRow>
+  );
+}
+
+function UpdateCheckRow() {
+  const [checking, setChecking] = useState(false);
+  const [result, setResult] = useState<string | null>(null);
+
+  async function handle() {
+    setChecking(true);
+    setResult(null);
+    try {
+      const res = await invoke<{ ok: boolean; reason?: string }>("update:check");
+      if (res.ok) {
+        setResult("Запрос отправлен. Если есть новая версия — баннер появится сверху через несколько секунд.");
+      } else if (res.reason === "dev_mode") {
+        setResult("В dev-режиме (npm start) автообновление отключено. Нужен installer-билд.");
+      } else {
+        setResult(`Не удалось: ${res.reason ?? "ошибка"}`);
+      }
+    } catch (e) {
+      setResult(`Ошибка: ${(e as Error).message}`);
+    } finally {
+      setChecking(false);
+      window.setTimeout(() => setResult(null), 8000);
+    }
+  }
+
+  return (
+    <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3.5">
+      <div className="flex items-center justify-between gap-4">
+        <div className="min-w-0">
+          <h3 className="text-sm font-medium text-white">Обновления</h3>
+          <p className="mt-0.5 text-xs leading-relaxed text-white/50">
+            Metacore проверяет обновления автоматически каждые 5 минут. Можно запустить проверку прямо сейчас.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={handle}
+          disabled={checking}
+          className="inline-flex flex-none items-center gap-1.5 rounded-md border border-white/15 bg-white/[0.05] px-3 py-1.5 text-xs font-medium text-white/80 transition hover:bg-white/10 disabled:opacity-50"
+        >
+          {checking ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <RefreshCw className="h-3.5 w-3.5" />
+          )}
+          Проверить
+        </button>
+      </div>
+      {result ? (
+        <div className="mt-2 rounded-md border border-white/10 bg-white/[0.02] px-3 py-2 text-[11px] text-white/65">
+          {result}
+        </div>
+      ) : null}
+    </div>
   );
 }
 
