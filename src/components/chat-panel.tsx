@@ -497,7 +497,7 @@ export function ChatPanel({
             disabled={quotaExceeded}
             className="w-full resize-none bg-transparent text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-60"
           />
-          <div className="mt-2 flex min-w-0 flex-nowrap items-center gap-1.5 overflow-x-auto text-xs [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="mt-2 flex min-w-0 flex-nowrap items-center gap-1.5 text-xs">
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
