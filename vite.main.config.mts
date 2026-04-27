@@ -7,6 +7,8 @@ export default defineConfig({
     mainFields: ["module", "jsnext:main", "jsnext"],
   },
   build: {
+    sourcemap: false,
+    minify: "esbuild",
     lib: {
       entry: "src/main.ts",
       formats: ["cjs"],

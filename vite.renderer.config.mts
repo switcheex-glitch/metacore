@@ -19,4 +19,8 @@ export default defineConfig({
     port: 5173,
     strictPort: true,
   },
+  build: {
+    sourcemap: false,
+    minify: "esbuild",
+  },
 });

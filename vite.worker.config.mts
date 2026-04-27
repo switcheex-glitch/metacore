@@ -6,6 +6,8 @@ export default defineConfig({
     alias: { "@": path.resolve(__dirname, "src") },
   },
   build: {
+    sourcemap: false,
+    minify: "esbuild",
     lib: {
       entry: "src/workers/tsc_worker.ts",
       formats: ["es"],

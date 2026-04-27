@@ -102,7 +102,10 @@ const config: ForgeConfig = {
   packagerConfig: {
     name: "Metacore",
     executableName: "metacore",
-    asar: false,
+    // Pack the entire app (source + node_modules) into a single app.asar
+    // archive so it isn't sitting on disk as plain files. AutoUnpackNatives
+    // plugin handles .node binaries that asar can't load directly.
+    asar: true,
     icon: "./assets/icon",
     appBundleId: "app.metacore",
     extraResource: ["./scaffold", "./drizzle", "./assets"],
@@ -143,6 +146,7 @@ const config: ForgeConfig = {
     }),
   ],
   plugins: [
+    new AutoUnpackNativesPlugin({}),
     new VitePlugin({
       build: [
         { entry: "src/main.ts", config: "vite.main.config.mts", target: "main" },
@@ -157,8 +161,12 @@ const config: ForgeConfig = {
       [FuseV1Options.EnableCookieEncryption]: true,
       [FuseV1Options.EnableNodeOptionsEnvironmentVariable]: false,
       [FuseV1Options.EnableNodeCliInspectArguments]: false,
-      [FuseV1Options.EnableEmbeddedAsarIntegrityValidation]: false,
-      [FuseV1Options.OnlyLoadAppFromAsar]: false,
+      // Validate the embedded asar at load time — refuses to start if app.asar
+      // has been tampered with.
+      [FuseV1Options.EnableEmbeddedAsarIntegrityValidation]: true,
+      // Only load the app from the embedded app.asar — refuses to start if
+      // someone replaces app.asar with an unpacked "app" directory.
+      [FuseV1Options.OnlyLoadAppFromAsar]: true,
       [FuseV1Options.LoadBrowserProcessSpecificV8Snapshot]: false,
       [FuseV1Options.GrantFileProtocolExtraPrivileges]: true,
     }),
