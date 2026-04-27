@@ -408,15 +408,44 @@ type UpdateState =
 
 let updateState: UpdateState = { phase: "idle", version: app.getVersion() };
 
+let updateLogPath = "";
+function updaterLog(msg: string): void {
+  try {
+    if (!updateLogPath) {
+      updateLogPath = path.join(app.getPath("userData"), "updater.log");
+    }
+    requireCjs("node:fs").appendFileSync(
+      updateLogPath,
+      `[${new Date().toISOString()}] ${msg}\n`,
+    );
+  } catch {
+    // ignore disk errors
+  }
+}
+
 function setUpdateState(next: UpdateState) {
   updateState = next;
+  updaterLog(`state: ${JSON.stringify(next)}`);
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.webContents.send("update:state", updateState);
   }
 }
 
+const updaterLogger = {
+  log: (...args: unknown[]) =>
+    updaterLog(`log: ${args.map((a) => (typeof a === "string" ? a : JSON.stringify(a))).join(" ")}`),
+  info: (...args: unknown[]) =>
+    updaterLog(`info: ${args.map((a) => (typeof a === "string" ? a : JSON.stringify(a))).join(" ")}`),
+  warn: (...args: unknown[]) =>
+    updaterLog(`warn: ${args.map((a) => (typeof a === "string" ? a : JSON.stringify(a))).join(" ")}`),
+  error: (...args: unknown[]) =>
+    updaterLog(`error: ${args.map((a) => (typeof a === "string" ? a : JSON.stringify(a))).join(" ")}`),
+};
+
 function setupAutoUpdater(): void {
+  updaterLog(`setupAutoUpdater called. version=${app.getVersion()} packaged=${app.isPackaged}`);
   if (!app.isPackaged) {
+    updaterLog("not packaged, skipping");
     return;
   }
   let updateElectronApp: typeof import("update-electron-app").updateElectronApp;
@@ -425,21 +454,26 @@ function setupAutoUpdater(): void {
     const mod = requireCjs("update-electron-app") as typeof import("update-electron-app");
     updateElectronApp = mod.updateElectronApp;
     UpdateSourceType = mod.UpdateSourceType;
+    updaterLog(`update-electron-app loaded: ${typeof updateElectronApp} ${typeof UpdateSourceType}`);
   } catch (e) {
-    console.warn("[updater] update-electron-app not available:", (e as Error).message);
+    updaterLog(`require failed: ${(e as Error).message}\n${(e as Error).stack ?? ""}`);
     return;
   }
 
   autoUpdater.on("checking-for-update", () => {
+    updaterLog("autoUpdater: checking-for-update");
     setUpdateState({ phase: "checking", version: app.getVersion() });
   });
   autoUpdater.on("update-available", () => {
+    updaterLog("autoUpdater: update-available");
     setUpdateState({ phase: "downloading", version: app.getVersion(), nextVersion: null });
   });
   autoUpdater.on("update-not-available", () => {
+    updaterLog("autoUpdater: update-not-available");
     setUpdateState({ phase: "idle", version: app.getVersion() });
   });
   autoUpdater.on("update-downloaded", (_event, _notes, releaseName) => {
+    updaterLog(`autoUpdater: update-downloaded ${releaseName ?? ""}`);
     setUpdateState({
       phase: "ready",
       version: app.getVersion(),
@@ -447,7 +481,7 @@ function setupAutoUpdater(): void {
     });
   });
   autoUpdater.on("error", (err) => {
-    console.error("[updater] error:", err);
+    updaterLog(`autoUpdater: error ${err?.message ?? "unknown"}\n${err?.stack ?? ""}`);
     setUpdateState({
       phase: "error",
       version: app.getVersion(),
@@ -465,10 +499,11 @@ function setupAutoUpdater(): void {
       // automatically at startup; this controls re-check cadence.
       updateInterval: "5 minutes",
       notifyUser: false,
-      logger: console,
+      logger: updaterLogger,
     });
+    updaterLog("updateElectronApp() returned without throwing");
   } catch (e) {
-    console.warn("[updater] init failed:", (e as Error).message);
+    updaterLog(`updateElectronApp() threw: ${(e as Error).message}\n${(e as Error).stack ?? ""}`);
   }
 }
 
