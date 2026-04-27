@@ -4,6 +4,7 @@ out/
 dist/
 .DS_Store
 *.log
+*.err
 .env
 .env.local
 user-settings.json
@@ -11,3 +12,6 @@ user-settings.json
 *.sqlite-journal
 .playwright-report/
 test-results/
+.dev-logs/
+supabase/.temp/
+.tanstack/

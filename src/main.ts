@@ -459,7 +459,7 @@ function setupAutoUpdater(): void {
     updateElectronApp({
       updateSource: {
         type: UpdateSourceType.ElectronPublicUpdateService,
-        repo: "metacore-ltd/metacore",
+        repo: "switcheex-glitch/metacore",
       },
       updateInterval: "1 hour",
       notifyUser: false,

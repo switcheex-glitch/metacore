@@ -136,7 +136,7 @@ const config: ForgeConfig = {
   ],
   publishers: [
     new PublisherGithub({
-      repository: { owner: "metacore-ltd", name: "metacore" },
+      repository: { owner: "switcheex-glitch", name: "metacore" },
       prerelease: false,
       draft: false,
     }),
