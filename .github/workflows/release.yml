@@ -1,0 +1,54 @@
+name: Release
+
+# Triggers:
+# - Push a tag like v0.1.1 → builds installers for Windows / macOS / Linux,
+#   uploads them to a GitHub Release matching the tag.
+# - Manual dispatch from the Actions tab.
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # macOS DMG maker needs Xcode CLT (preinstalled). Linux Deb needs fakeroot/dpkg.
+      - name: Install Linux build deps
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y fakeroot dpkg rpm
+
+      - name: Build & publish
+        env:
+          # Personal access token with `repo` scope, OR the default GITHUB_TOKEN
+          # (already has write to releases via the `contents: write` permission).
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Optional Windows code-signing — uncomment + add secrets when you have a cert.
+          # WINDOWS_CERTIFICATE_FILE: ${{ secrets.WINDOWS_CERTIFICATE_FILE }}
+          # WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+          # Optional macOS code-signing + notarization.
+          # APPLE_ID: ${{ secrets.APPLE_ID }}
+          # APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
+          # APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: npm run publish

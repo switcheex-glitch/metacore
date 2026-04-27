@@ -1,0 +1,13 @@
+node_modules/
+.vite/
+out/
+dist/
+.DS_Store
+*.log
+.env
+.env.local
+user-settings.json
+*.sqlite
+*.sqlite-journal
+.playwright-report/
+test-results/

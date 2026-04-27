@@ -1,0 +1,154 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Metacore is a dark-first app. Light theme kept for readability fallback
+       only; the shell forces .dark on <html> by default. */
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+    --primary: 262 83% 58%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 262 83% 58%;
+    --radius: 0.75rem;
+    --sidebar: 262 40% 96%;
+    --sidebar-foreground: 240 10% 3.9%;
+    --sidebar-accent: 262 83% 58%;
+
+    /* Metacore gradient stops (used on .dark only by default). */
+    --metacore-bg-from: #000000;
+    --metacore-bg-via: #050505;
+    --metacore-bg-to: #0a0a0a;
+    --metacore-glow-a: rgba(220, 220, 220, 0.18);
+    --metacore-glow-b: rgba(200, 200, 200, 0.10);
+  }
+
+  .dark {
+    --background: 0 0% 0%;
+    --foreground: 0 0% 98%;
+    --card: 0 0% 5%;
+    --card-foreground: 0 0% 98%;
+    --popover: 0 0% 4%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 262 83% 62%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 10%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 0 0% 8%;
+    --muted-foreground: 0 0% 65%;
+    --accent: 0 0% 12%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 72% 50%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 14%;
+    --input: 0 0% 14%;
+    --ring: 262 83% 62%;
+    --sidebar: 0 0% 0%;
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-accent: 262 83% 62%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html,
+  body,
+  #root {
+    @apply h-full;
+  }
+
+  html.dark {
+    color-scheme: dark;
+  }
+
+  body {
+    @apply text-foreground antialiased;
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background-color: transparent;
+  }
+
+  /* Black gradient shell. Layered: two soft radial glows (violet + indigo)
+     on top of a near-black linear gradient. Fixed to the viewport so
+     scrolling content stays over the same field. */
+  html.dark body {
+    background-color: #000;
+    background-image: url('./assets/bg.svg');
+    background-attachment: fixed;
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-position: center center;
+  }
+
+  html.dark .bg-card {
+    background-color: rgba(20, 20, 20, 0.55) !important;
+    backdrop-filter: blur(14px);
+  }
+  html.dark .bg-sidebar,
+  html.dark [class*="bg-sidebar"] {
+    background-color: rgba(0, 0, 0, 0.45) !important;
+    backdrop-filter: blur(14px);
+  }
+  html.dark .bg-background {
+    background-color: transparent !important;
+  }
+  html.dark .bg-black {
+    background-color: transparent !important;
+  }
+  html.dark .bg-muted {
+    background-color: rgba(255, 255, 255, 0.06) !important;
+  }
+  html.dark .bg-popover {
+    background-color: rgba(15, 15, 15, 0.85) !important;
+    backdrop-filter: blur(14px);
+  }
+}
+
+.title-bar-drag {
+  -webkit-app-region: drag;
+}
+.title-bar-no-drag {
+  -webkit-app-region: no-drag;
+}
+
+/* Themed scrollbars (Chromium). Overrides native Windows/macOS chrome. */
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(168, 85, 247, 0.45);
+  background-clip: content-box;
+}
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+html {
+  scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
+  scrollbar-width: thin;
+}

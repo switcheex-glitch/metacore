@@ -1,0 +1,116 @@
+-- Расширяем публичную галерею: цена, категория, фильтр нецензурной лексики,
+-- платный форк (списание с wallet покупателя + начисление 70% автору).
+
+alter table public.public_apps
+  add column if not exists price_kopecks bigint not null default 0,
+  add column if not exists category text;
+
+-- Publish with price + category + simple profanity filter.
+create or replace function public.publish_app(
+  p_key text,
+  p_slug text,
+  p_name text,
+  p_description text,
+  p_files jsonb,
+  p_price_kopecks bigint default 0,
+  p_category text default null
+) returns table (id uuid)
+language plpgsql security definer set search_path = public as $$
+declare
+  new_id uuid;
+  combined text;
+  bad text;
+begin
+  if p_key is null or length(p_key) < 8 then raise exception 'bad_key'; end if;
+  if not exists (select 1 from public.metacore_keys where key = p_key and revoked_at is null) then
+    raise exception 'bad_key';
+  end if;
+  if p_price_kopecks < 0 or p_price_kopecks > 100000000 then
+    raise exception 'bad_price';
+  end if;
+  combined := lower(coalesce(p_name, '') || ' ' || coalesce(p_description, ''));
+  bad := (select b from unnest(array[
+    'хуй','хуе','хуё','хуи','пизд','ебат','ебан','ёбан','ебал','ёбал','бляд','блядь','сука','суки','мудак','долбоёб','долбоеб','хуев','пидор','пидар','нахуй','нах','манда',
+    'fuck','shit','bitch','asshole','cunt','dick','faggot','nigger','nigga'
+  ]) as b where combined ~* ('\m' || b || '\M') limit 1);
+  if bad is not null then
+    raise exception 'profanity_%', bad;
+  end if;
+  insert into public.public_apps (slug, name, description, author_key, files, price_kopecks, category)
+    values (p_slug, p_name, p_description, p_key, p_files, p_price_kopecks, p_category)
+    on conflict (slug) do update set
+      name = excluded.name,
+      description = excluded.description,
+      files = excluded.files,
+      price_kopecks = excluded.price_kopecks,
+      category = excluded.category
+    returning id into new_id;
+  return query select new_id;
+end;
+$$;
+grant execute on function public.publish_app(text, text, text, text, jsonb, bigint, text) to anon, authenticated;
+
+-- Old 5-arg signature for backwards compatibility.
+create or replace function public.publish_app(
+  p_key text, p_slug text, p_name text, p_description text, p_files jsonb
+) returns table (id uuid)
+language sql security definer set search_path = public as $$
+  select id from public.publish_app(p_key, p_slug, p_name, p_description, p_files, 0, null);
+$$;
+grant execute on function public.publish_app(text, text, text, text, jsonb) to anon, authenticated;
+
+-- Fork: if paid, atomically charge buyer wallet and credit 70% to author.
+create or replace function public.fork_public_app(
+  p_app_id uuid,
+  p_buyer_key text default null
+) returns table (files jsonb, name text, ok boolean, reason text, price_kopecks bigint)
+language plpgsql security definer set search_path = public as $$
+declare
+  row_app public.public_apps%rowtype;
+  cur_balance bigint;
+  author_share bigint;
+begin
+  select * into row_app from public.public_apps where id = p_app_id;
+  if not found then
+    return query select null::jsonb, null::text, false, 'not_found', 0::bigint; return;
+  end if;
+  if row_app.price_kopecks > 0 then
+    if p_buyer_key is null or not exists (select 1 from public.metacore_keys where key = p_buyer_key and revoked_at is null) then
+      return query select null::jsonb, null::text, false, 'bad_key', row_app.price_kopecks; return;
+    end if;
+    -- Author can fork own app for free
+    if row_app.author_key = p_buyer_key then
+      update public.public_apps set forks = forks + 1 where id = p_app_id;
+      return query select row_app.files, row_app.name, true, 'owner', row_app.price_kopecks; return;
+    end if;
+    insert into public.wallets (key, balance_kopecks) values (p_buyer_key, 0) on conflict (key) do nothing;
+    select balance_kopecks into cur_balance from public.wallets where key = p_buyer_key for update;
+    if cur_balance < row_app.price_kopecks then
+      return query select null::jsonb, null::text, false, 'insufficient_funds', row_app.price_kopecks; return;
+    end if;
+    update public.wallets set balance_kopecks = balance_kopecks - row_app.price_kopecks, updated_at = now()
+      where key = p_buyer_key;
+    insert into public.wallet_transactions (key, kind, amount_kopecks, status, provider, metadata, completed_at)
+      values (p_buyer_key, 'purchase', row_app.price_kopecks, 'completed', 'gallery',
+              jsonb_build_object('app_id', p_app_id, 'item_name', row_app.name), now());
+    if row_app.author_key is not null then
+      author_share := (row_app.price_kopecks * 70) / 100;
+      insert into public.author_earnings (author_key, item_id, buyer_key, gross_kopecks, author_kopecks)
+        values (row_app.author_key, 'gallery:' || row_app.slug, p_buyer_key,
+                row_app.price_kopecks, author_share);
+    end if;
+  end if;
+  update public.public_apps set forks = forks + 1 where id = p_app_id;
+  return query select row_app.files, row_app.name, true, 'ok', row_app.price_kopecks;
+end;
+$$;
+grant execute on function public.fork_public_app(uuid, text) to anon, authenticated;
+
+-- Backwards compat (1-arg)
+create or replace function public.fork_public_app(p_app_id uuid)
+returns table (files jsonb, name text)
+language sql security definer set search_path = public as $$
+  select files, name from public.fork_public_app(p_app_id, null::text)
+  where ok = true;
+$$;
+grant execute on function public.fork_public_app(uuid) to anon, authenticated;

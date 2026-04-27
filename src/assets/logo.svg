@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none">
+  <rect width="120" height="120" fill="black"/>
+  <g transform="rotate(-20 60 60)" stroke="white" stroke-linecap="round" fill="none">
+    <!-- back half of ring -->
+    <path d="M14 60 Q 60 26, 106 60" stroke-width="9"/>
+    <!-- planet body -->
+    <circle cx="60" cy="62" r="26" stroke-width="9" fill="black"/>
+    <!-- front half of ring (over planet on the right, hidden on the left) -->
+    <path d="M42 72 Q 60 84, 106 60" stroke-width="9"/>
+    <!-- small upper-left flick of ring -->
+    <path d="M14 60 Q 22 56, 32 56" stroke-width="9"/>
+  </g>
+</svg>
