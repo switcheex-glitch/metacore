@@ -17,6 +17,7 @@ export default defineConfig({
         "electron",
         "@libsql/client",
         "isomorphic-git",
+        "update-electron-app",
         "ai",
         /^@ai-sdk\//,
         /^node:/,

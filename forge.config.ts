@@ -25,6 +25,7 @@ const RUNTIME_EXTERNALS = [
   "@libsql/darwin-arm64",
   "isomorphic-git",
   "electron-squirrel-startup",
+  "update-electron-app",
   "zod",
   "ai",
   "@ai-sdk/anthropic",
